@@ -300,6 +300,190 @@ There are a couple of crucial things to note here:
    the service method that we'd be calling, is proof that our unit test is
    properly isolated from any of the dependencies of the method it tests.
 
+## Code Check
+
+Check the project structure and code in each class to ensure your code matches
+what was covered in this lesson.
+
+```text
+├── HELP.md
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+└── src
+    ├── main
+    │   ├── java
+    │   │   └── com
+    │   │       └── example
+    │   │           └── springtestingdemo
+    │   │               ├── SpringTestingDemoApplication.java
+    │   │               ├── controller
+    │   │               │  └── DemoController.java
+    │   │               ├── dto
+    │   │               │  └── CatFactDTO.java
+    │   │               └── service
+    │   │                   └── CatFactService.java
+    │   └── resources
+    │       ├── application.properties
+    │       ├── static
+    │       └── templates
+    └── test
+        └── java
+            └── org
+                └── example
+                    └── springtestingdemo
+                        ├── SpringTestingDemoApplicationTests.java
+                        └── controller
+                            └── DemoControllerUnitTest.java
+```
+
+### SpringTestingDemoApplication.java
+
+```java
+package com.example.springtestingdemo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+public class SpringTestingDemoApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SpringTestingDemoApplication.class, args);
+	}
+
+	// Add a RestTemplate bean
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
+
+}
+```
+
+### DemoController.java
+
+```java
+package com.example.springtestingdemo.controller;
+
+import com.example.springtestingdemo.dto.CatFactDTO;
+import com.example.springtestingdemo.service.CatFactService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class DemoController {
+
+    private final CatFactService catFactService;
+
+    @Autowired
+    public DemoController(CatFactService catFactService) {
+        this.catFactService = catFactService;
+    }
+
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello World";
+    }
+
+    @GetMapping("/cat-fact")
+    public CatFactDTO getCatFact() {
+       return catFactService.getFact();
+    }
+}
+```
+
+### CatFactDTO.java
+
+```java
+package com.example.springtestingdemo.dto;
+
+import lombok.Data;
+
+@Data
+public class CatFactDTO {
+    private String fact;
+}
+```
+
+### CatFactService.java
+
+Make sure to add the content back in if you commented it out prior.
+
+```java
+package com.example.springtestingdemo.service;
+
+import com.example.springtestingdemo.dto.CatFactDTO;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+@Slf4j
+public class CatFactService {
+
+    private static final String FACT_URI = "https://catfact.ninja/fact";
+    private final RestTemplate restTemplate;
+
+    @Autowired
+    public CatFactService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    public CatFactDTO getFact() {
+        CatFactDTO catFact = restTemplate.getForObject(FACT_URI, CatFactDTO.class);
+        log.info("Retrieved cat fact from external source. Returning the DTO");
+        return catFact;
+    }
+}
+```
+
+### DemoControllerUnitTest.java
+
+```java
+package com.example.springtestingdemo.controller;
+
+import com.example.springtestingdemo.dto.CatFactDTO;
+import com.example.springtestingdemo.service.CatFactService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
+class DemoControllerUnitTest {
+
+    private DemoController demoController;
+
+    private CatFactService catFactService;
+
+    @BeforeEach
+    void setUp() {
+        catFactService = Mockito.mock(CatFactService.class);
+        demoController = new DemoController(catFactService);
+    }
+
+    @Test
+    void hello() {
+        assertEquals("Hello World", demoController.hello());
+    }
+
+    @Test
+    void getCatFact() {
+        CatFactDTO catFact = new CatFactDTO();
+        catFact.setFact("In ancient Egypt, when a family cat died," +
+                "all family members would shave their eyebrows as a sign of mourning.");
+        when(catFactService.getFact()).thenReturn(catFact);
+        assertEquals(catFact, demoController.getCatFact());
+    }
+}
+```
+
 ## Conclusion
 
 Mocking objects is a process that comes in handy in unit testing when the

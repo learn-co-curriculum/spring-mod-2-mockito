@@ -305,6 +305,8 @@ There are a couple of crucial things to note here:
 Check the project structure and code in each class to ensure your code matches
 what was covered in this lesson.
 
+### Project Structure
+
 ```text
 ├── HELP.md
 ├── mvnw
